@@ -23,16 +23,30 @@ import (
 	"path"
 	"strings"
 	"time"
+	"regexp"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
+	portagePackageLabels = []string{
+		// labels in capital letters are directly from PMS:
+		// https://projects.gentoo.org/pms/8/pms.html#x1-10900011.1
+		"CATEGORY",
+		"P",
+		"PF",
+		"PN",
+		"PR",
+		"PV",
+		"PVR",
+		"repository",
+		"SLOT",
+	}
 	promInstalled = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "portage_package",
 		Help: "Installed packages",
-	}, []string{"category", "pkgver", "slot", "repository"})
+	}, portagePackageLabels)
 
 	promDuration = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "portage_installed_duration",
@@ -82,12 +96,46 @@ func collectInstalled(vdb string) {
 				continue
 			}
 
-			promInstalled.WithLabelValues(
-				cat.Name(),
-				pkg.Name(),
-				strings.TrimSpace(string(slot)),
-				strings.TrimSpace(string(repo)),
-			).Set(1)
+			pf := pkg.Name()
+			regex := regexp.MustCompile(`^(?P<PN>.+)(?:-(?P<PV>\d+[^-]*))(?:-(?P<PR>r\d{1,}))?$`)
+			match := regex.FindStringSubmatch(pf)
+			matchMap := make(map[string]string)
+			for i, name := range regex.SubexpNames() {
+				if i > 0 && i <= len(match) {
+					matchMap[name] = match[i]
+				}
+			}
+
+
+			// fmt.Printf("%#v\n", r.FindStringSubmatch(pf))
+			// fmt.Printf("%#v\n", r.SubexpNames())
+			pn := matchMap["PN"]
+			p := matchMap["PN"] + "-" + matchMap["PV"]
+			pr := matchMap["PR"]
+			pv := matchMap["PV"]
+			pvr := ""
+			if(pr != "") {
+				pvr = matchMap["PV"] + "-" + pr
+			} else {
+				pvr = matchMap["PV"]
+				pr = "r0"
+			}
+
+			labelValueMap := prometheus.Labels{
+				"CATEGORY": cat.Name(),
+				"P": p,
+				"PF": pf,
+				"PN": pn,
+				"PR": pr,
+				"PV": pv,
+				"PVR": pvr,
+				"repository": strings.TrimSpace(string(repo)),
+				"SLOT": strings.TrimSpace(string(slot)),
+			}
+			if(len(labelValueMap) != len(portagePackageLabels)) {
+				panic("Mismatch between portagePackageLabels and labelValueMap")
+			}
+			promInstalled.With(labelValueMap).Set(1)
 		}
 	}
 }
