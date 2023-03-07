@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"time"
-	"regexp"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -52,6 +52,8 @@ var (
 		Name: "portage_installed_duration",
 		Help: "Duration of the last collection of installed packages.",
 	})
+
+	regex = regexp.MustCompile(`^(?P<PN>.+)(?:-(?P<PV>\d+[^-]*))(?:-(?P<PR>r\d{1,}))?$`)
 )
 
 func collectInstalled(vdb string) {
@@ -97,7 +99,6 @@ func collectInstalled(vdb string) {
 			}
 
 			pf := pkg.Name()
-			regex := regexp.MustCompile(`^(?P<PN>.+)(?:-(?P<PV>\d+[^-]*))(?:-(?P<PR>r\d{1,}))?$`)
 			match := regex.FindStringSubmatch(pf)
 			matchMap := make(map[string]string)
 			for i, name := range regex.SubexpNames() {
@@ -106,15 +107,12 @@ func collectInstalled(vdb string) {
 				}
 			}
 
-
-			// fmt.Printf("%#v\n", r.FindStringSubmatch(pf))
-			// fmt.Printf("%#v\n", r.SubexpNames())
 			pn := matchMap["PN"]
 			p := matchMap["PN"] + "-" + matchMap["PV"]
 			pr := matchMap["PR"]
 			pv := matchMap["PV"]
 			pvr := ""
-			if(pr != "") {
+			if pr != "" {
 				pvr = matchMap["PV"] + "-" + pr
 			} else {
 				pvr = matchMap["PV"]
@@ -122,17 +120,17 @@ func collectInstalled(vdb string) {
 			}
 
 			labelValueMap := prometheus.Labels{
-				"CATEGORY": cat.Name(),
-				"P": p,
-				"PF": pf,
-				"PN": pn,
-				"PR": pr,
-				"PV": pv,
-				"PVR": pvr,
+				"CATEGORY":   cat.Name(),
+				"P":          p,
+				"PF":         pf,
+				"PN":         pn,
+				"PR":         pr,
+				"PV":         pv,
+				"PVR":        pvr,
 				"repository": strings.TrimSpace(string(repo)),
-				"SLOT": strings.TrimSpace(string(slot)),
+				"SLOT":       strings.TrimSpace(string(slot)),
 			}
-			if(len(labelValueMap) != len(portagePackageLabels)) {
+			if len(labelValueMap) != len(portagePackageLabels) {
 				panic("Mismatch between portagePackageLabels and labelValueMap")
 			}
 			promInstalled.With(labelValueMap).Set(1)
