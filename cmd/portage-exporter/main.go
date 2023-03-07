@@ -33,8 +33,8 @@ func main() {
 
 	vdb.Collector(getEnvDuration("VDB_UPDATE_INTERVAL", 5*time.Minute), getEnvString("VDB_PATH", "/var/db/pkg"), ctx)
 
-	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(":2112", nil)
+	http.Handle(getEnvString("SERVE_PATH", "/metrics"), promhttp.Handler())
+	http.ListenAndServe(getEnvString("SERVE_ADDRESS", ":2112"), nil)
 }
 
 func getEnvDuration(key string, def time.Duration) time.Duration {

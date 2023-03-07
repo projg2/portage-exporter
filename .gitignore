@@ -16,3 +16,4 @@
 
 # Binary output
 portage-exporter
+!cmd/portage-exporter/
