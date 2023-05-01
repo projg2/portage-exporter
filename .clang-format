@@ -1,0 +1,5 @@
+BasedOnStyle: Chromium
+DerivePointerAlignment: false
+IndentAccessModifiers: false
+AccessModifierOffset: -2
+IndentWidth: 4
