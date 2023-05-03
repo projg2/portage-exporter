@@ -82,7 +82,6 @@ void vdb_collector::collectInstalled(const std::filesystem::path& vdbPath) {
                           trim(read_file(package.path() / "repository"))},
                          {"SLOT", trim(read_file(package.path() / "SLOT"))}});
                     m.Set(1);
-                    m.SetToCurrentTime();
                     m_metrics.push_back(&m);
                 }
             }

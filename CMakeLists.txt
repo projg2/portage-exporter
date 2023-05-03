@@ -8,7 +8,7 @@ project(portage-exporter
 )
 
 find_package(prometheus-cpp CONFIG REQUIRED)
-include(GNUInstallDirs REQUIRED)
+include(GNUInstallDirs)
 
 add_executable(${PROJECT_NAME} src/main.cc src/vdb.cc)
 target_link_libraries(${PROJECT_NAME} PRIVATE prometheus-cpp::pull)
